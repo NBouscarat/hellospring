@@ -1,4 +1,4 @@
-import { AppData, photo, rejectReason} from '@/components/types';
+import { AppData, photo, rejectReason, STATUS_APPROVED, STATUS_REFUSED} from '@/components/types';
 import axios from 'axios';
 
 //DEFINE CONSTANTS
@@ -27,10 +27,24 @@ export function GetAuthToken(){
 
 
 export async function PatchPhoto(photo:photo, status:string, message?:string):Promise<photo>{
+    let mState =null;
+     switch (status) {
+        case STATUS_APPROVED:
+            mState = "published";
+            break;
+        case STATUS_REFUSED:
+            mState = "rejected";
+            break;
+        default:
+            mState = "draft";
+            break;
+    }
     const data = {
         type:"photo",
         field_status: {value:status},
         field_message: {value:message},
+        moderation_state: {value:mState},
+        revision_log: {value:message},
         
     };
     await axios.get(DRUPALURL+"session/token",{}
