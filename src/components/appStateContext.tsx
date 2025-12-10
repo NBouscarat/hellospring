@@ -3,6 +3,7 @@ import React, { createContext, useContext, useState, ReactNode, useEffect } from
 import { AppData, APPROVED_RIGHT, DELETE_RIGHT, FILTER_APPROVED, FILTER_PENDING, FILTER_REFUSED, photo, photoStatus, REFUSED_RIGHT, REVERT_RIGHT, userType, USERTYPE_ADMINISTRATOR, USERTYPE_CONTENT_EDITOR, USERTYPE_TEACHER } from '@/components/types';
 import { CHECKAUTH, DRUPALURL, PatchPhoto, } from './engine';
 import axios from 'axios';
+import { Console } from 'console';
 
 
 interface AppState {
@@ -86,11 +87,12 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
         title: "",
         status: "pending_review",
         uid: "",
-        studentIam: "",
+        studentIam: "BOUNI204",
         imageUrl: "/Bird.png",
         specie: "Test Specie",
-        className: "",
+        className: "distribution",
         message: "",
+        school: "script",
         error: null,
         selected: false,
       };
@@ -114,6 +116,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
           ...prevAppData,
           error: m,
         }));
+        console.log("Log error:",m);
         setTimer(setTimeout(() => {
             setAppData((prevAppData) => ({
               ...prevAppData,
@@ -160,11 +163,11 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
               
           }else{
               //wait for login btn click
-              console.log("No User");
+              SendError("Error No User Connected");
           }
           
       }).catch((error)=>{
-          console.log("Error getting User");
+          SendError("Error getting User");
           //wait for login btn
       }); 
       
@@ -238,7 +241,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
 
     const HandleBatchAction = (status:photoStatus)=>{
       // SELECT ALL PHOTOS SELECTED
-      let selectedPhotos = [...appData.photosToValidate.filter(photo=>photo.selected)];
+      let selectedPhotos = appData.photosToValidate.filter(photo=>photo.selected);
       // FOR EACH PHOTO SEND MODIFICATION WITH NEW STATUS
       console.log("Batch Action on photos:", selectedPhotos, status); 
       selectedPhotos.forEach(async photo=>{
@@ -246,14 +249,9 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
         let photoReturn = await PatchPhoto(photo,status,photo.message);
         if(photoReturn.error === null){
           photo.selected = false;
-          //UpdatePhoto(photo, status);
+          UpdatePhoto(photo,status);
         }else{
-          //ERROR ONLY UNSELECT
-          //SET APPDATA ERROR
-          setAppData((prevAppData) => ({
-            ...prevAppData,
-            error: `Error updating photo ID ${photo.id} ${photoReturn.error}`,
-          }));
+          SendError(`Error updating photo ID ${photo.id} ${photoReturn.error}`);
         }
         
       });

@@ -10,8 +10,8 @@
   --button-secondary-hover: #f2f2f2;
 
   display: flex;
-  align-items: center;
-  justify-items: center;
+  align-items: start;
+  justify-items: start;
   min-height: 100svh;
   padding: 80px;
   font-family: var(--font-geist-sans);
@@ -358,7 +358,7 @@
 
 .popUpError{
   position: fixed;
-  bottom: 20px;
+  top: 20px;
   left: 50%;
   transform: translateX(-50%);
   background-color: rgb(255, 200, 200);
@@ -370,6 +370,15 @@
   z-index: 1000;
   font-size: 12px;
   animation: popUp 4s ease-in-out forwards;
+}
+.cardAuthor{
+  font-size: 10px;
+  font-weight: bold;
+  color: var(--lightGrey);
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  margin-bottom: 5px;
 }
 
 @keyframes popUp {

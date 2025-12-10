@@ -107,6 +107,7 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
 
   return (
     <div key={photo.id} className={GetClass()}>
+            <div className={styles.cardAuthor}><span>by {photo.studentIam}</span><span>{photo.className} ({photo.school})</span></div>
             <div className={styles.cardHeader}>
               <div className={styles.cardSelectBox}></div>
               <h2 className={styles.cardtitle}><span>

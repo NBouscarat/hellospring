@@ -1,5 +1,5 @@
 :root {
-  --background: #fefefe;
+  --background: #fff;
   --foreground: #fafafa;
   --foreground-hover: #fefefe;
   --borderLightGrey:1px solid #ccc;
@@ -9,7 +9,7 @@
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --background: #0a0a0a;
+    --background: #fff;
     --foreground: #fafafa;
     --foreground-hover: #fefefe;
   }

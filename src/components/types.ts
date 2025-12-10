@@ -65,7 +65,8 @@ export type photo = {
     message: string,
     className:string,
     error: string | null,
-    selected: boolean
+    selected: boolean,
+    school:string,
 }
 
 
