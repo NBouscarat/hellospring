@@ -6,7 +6,7 @@ import { useGlobalState } from "./appStateContext";
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faBan, faCheck, faClockRotateLeft, faCompress, faExpand, faMagnifyingGlass, faStop } from '@fortawesome/free-solid-svg-icons';
 import { useState } from "react";
-import { photo, STATUS_APPROVED, STATUS_PENDING_REVIEW, STATUS_REFUSED } from "./types";
+import { photo, dataSource, STATUS_APPROVED, STATUS_PENDING_REVIEW, STATUS_REFUSED } from "./types";
 import { GetRejectReasonByMessage, PatchPhoto } from "./engine";
 
 export default function Card({ route,photo}: { route?: string;  photo:photo }) { 
@@ -14,6 +14,9 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
   const [expand, setExpand] = useState(false);
   const [rejectReason, setRejectReason] = useState(GetRejectReasonByMessage(photo.message || "",appData.rejectReasons));
   const [message, setMessage] = useState(photo.message || "");
+  const specie:dataSource = appData.species.find(s=>s.id===photo.specie) ?? { id: 0, label: "Unknown"};
+  const school:dataSource = appData.schools.find(s=>s.id===photo.school) ?? { id: 0, label: "Unknown"};
+  const nameOfClass:dataSource = appData.classNames.find(s=>s.id===photo.className) ?? { id: 0, label: "Unknown"};
 
   const HandleMessage = (m:string)=>{
     let _photo = {...photo};
@@ -106,17 +109,16 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
 
 
   return (
-    <div key={photo.id} className={GetClass()}>
-            <div className={styles.cardAuthor}><span>by {photo.studentIam}</span><span>{photo.className} ({photo.school})</span></div>
+    <div key={photo.react_id} className={GetClass()}>
+            <div className={styles.cardAuthor}><span>by {photo.studentIam}</span><span>{nameOfClass.label} ({school.label})</span></div>
             <div className={styles.cardHeader}>
               <div className={styles.cardSelectBox}></div>
               <h2 className={styles.cardtitle}><span>
               <input className={styles.batchValidation} type="checkbox" checked={photo.selected} onChange={()=>TogglePhotoSelection(photo.id)}/></span>
               <span>
-              {photo.title}</span><span>{photo.specie.split(" ").map(e=>{
-                return <span key={e} className={message.toLowerCase().includes("aart") ?styles.cardTagError:styles.cardTag}>{e}</span>
+              {}</span><span>{<span key={specie.id} className={message.toLowerCase().includes("aart") ?styles.cardTagError:styles.cardTag}>{specie.label}</span>
                 
-              })}</span> 
+              }</span> 
               </h2>
             </div>
             <div className={styles.cardImgZone}>

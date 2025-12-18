@@ -1,9 +1,9 @@
 'use client'
 import React, { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import { AppData, APPROVED_RIGHT, DELETE_RIGHT, FILTER_APPROVED, FILTER_PENDING, FILTER_REFUSED, photo, photoStatus, REFUSED_RIGHT, REVERT_RIGHT, userType, USERTYPE_ADMINISTRATOR, USERTYPE_CONTENT_EDITOR, USERTYPE_TEACHER } from '@/components/types';
-import { CHECKAUTH, DRUPALURL, PatchPhoto, } from './engine';
+import { AppData, APPROVED_RIGHT, DELETE_RIGHT, FILTER_APPROVED, FILTER_PENDING, FILTER_REFUSED, photo,dataSource, photoStatus, REFUSED_RIGHT, REVERT_RIGHT, userType, USERTYPE_ADMINISTRATOR, USERTYPE_CONTENT_EDITOR, USERTYPE_TEACHER } from '@/components/types';
+import { CHECKAUTH, DRUPALURL, PatchPhoto, PHOTOAPI, MODERATIONAPI} from './engine';
 import axios from 'axios';
-import { Console } from 'console';
+import { useSearchParams } from 'next/navigation';
 
 
 interface AppState {
@@ -12,19 +12,28 @@ interface AppState {
     GetFakeData: ()=>void;
     SendError:(m:string|null)=>void;
     GetDrupalUser: ()=>void;
+    GetSpecies: ()=>void;
+    GetSchools: ()=>void;
     ToggleFilter: (type:string)=>void;
-    TogglePhotoSelection: (photoId:string)=>void;
+    TogglePhotoSelection: (photoId:number)=>void;
     HandleLoadingPhotos: (photos: photo[]) => void;
     HandleBatchAction: (status:photoStatus)=>void;
     UpdatePhoto: (photo:photo, newStatus:string)=>void;
+    SelectFilterDataSource: (dsId:number,label:string)=>void;
+    UpdateFilter: (value:string, label:string)=>void;
+    ResetFilters: ()=>void;
+    SendFilteredRequest: ()=>void;
+    GetImageFromApi: (paginate:number,append:boolean)=> void;
+    GetNextPage: ()=>void;
   }
 
 const GlobalStateContext = createContext<AppState | undefined>(undefined);
+
 const initialAppData: AppData = {
     start:true,
     photosToValidate: [],
     rejectReasons: [
-      { id: 0, label: "-- Select reason --" },
+      { id: 0, label: "-- Wiel e Grond --" },
       { id: 1, label: "D’Foto ass aus dem Internet resp. vun engem Bildschierm opgeholl" },
       { id: 2, label: "Falsch Aart" },
       { id: 3, label: "Anere Grond" },
@@ -52,11 +61,21 @@ const initialAppData: AppData = {
       }
     ],
     filter:{
-      displayApproved: false,
-      displayRefused: false,
+      displayApproved: true,
+      displayRefused: true,
       displayPending: true,
+      author:null,
+      className:null,
+      school:0,
+      species:0,
     },
-    error:null
+    species:[],
+    schools:[],
+    classNames:[],
+    error:null,
+    morePhotos:false,
+    page:0,
+    loading:true,
   };
 
 
@@ -65,7 +84,7 @@ const initialAppData: AppData = {
 export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
     const [appData, setAppData] = useState<AppData>(initialAppData);
     const [timer,setTimer] = useState<NodeJS.Timeout | null>(null);
-    
+    const searchParams = useSearchParams();
     //const GA4 = ReactGA4.initialize("G-KZ2ENR9329");
 
     const GetFakeUser = ()=>{
@@ -82,30 +101,69 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
 
     const GetFakeData = ()=>{
       let photos: photo[] = [];
-      let _photo: photo = {
-        id: "",
-        title: "",
-        status: "pending_review",
-        uid: "",
-        studentIam: "BOUNI204",
-        imageUrl: "/Bird.png",
-        specie: "Test Specie",
-        className: "distribution",
-        message: "",
-        school: "script",
-        error: null,
-        selected: false,
-      };
+      
       for(let i=1;i<=10;i++){
-        let newPhoto = {..._photo};
-        newPhoto.id = i.toString();
-        photos.push(newPhoto);
+        let _photo: photo = {
+          react_id: i,
+          id: i,
+          title: "",
+          status: "pending_review",
+          uid: "",
+          studentIam: "BOUNI204",
+          imageUrl: "/Bird.png",
+          specie: i,
+          className: i,
+          message: "",
+          school: i,
+          error: null,
+          selected: false,
+        };
+        photos.push(_photo);
       }
       setAppData((prevAppData) => ({
         ...prevAppData,
         photosToValidate: photos,
       }));
+      GetFakeSpecies();
+      GetFakeSchools();
+      GetFakeClassName();
     };
+    const GetFakeSpecies = ()=>{
+    
+      let species:dataSource[] = [];
+      for(let i=1;i<=10;i++){
+        species.push({id:i, label:`Specie ${i} (Latine Term ${i})`});
+      }
+      setAppData((prevAppData) => ({
+        ...prevAppData,
+        species: species,
+      }));
+    }
+    const GetFakeSchools = ()=>{
+    
+      let schools:dataSource[] = [];
+      for(let i=1;i<=10;i++){
+        schools.push({id:i, label:`schools ${i}`});
+      }
+      setAppData((prevAppData) => ({
+        ...prevAppData,
+        schools: schools,
+      }));
+    }
+    const GetFakeClassName = ()=>{
+    
+      let classNames:dataSource[] = [];
+      for(let i=1;i<=10;i++){
+        classNames.push({id:i, label:`class ${i}`});
+      }
+      setAppData((prevAppData) => ({
+        ...prevAppData,
+        classNames: classNames,
+      }));
+    }
+
+
+
     const SendError = async(m:string|null)=>{
       if(timer){
         clearTimeout(timer);
@@ -170,9 +228,176 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
           SendError("Error getting User");
           //wait for login btn
       }); 
+      // Load datasources
+      GetSpecies();
+      GetSchools();
+      GetClassNames();
       
     };
 
+    const GetSpecies = () =>{
+      // https://hellospring.script.lu/react/species?_format=json
+      const config = {
+          headers: {
+          },
+          params:{
+          }
+      };
+      axios.get(DRUPALURL+"react/species?_format=json" ,config).then((res)=>{
+          let speciesList:dataSource[] = res.data.map((specieObj:any)=>{ return {id: specieObj.tid_export, label:`${specieObj.name} (${specieObj.field_latin_term})`}});
+          setAppData((prevAppData) => ({
+            ...prevAppData,
+            species: speciesList,
+          }));
+      }).catch((error)=>{
+          SendError("Error fetching species from API");
+      }); 
+      
+    }
+
+    const GetSchools = () =>{
+      // https://hellospring.script.lu/react/schools?_format=json
+      const config = {
+          headers: {
+          },
+          params:{
+          }
+      };
+       axios.get(DRUPALURL+"react/schools?_format=json" ,config).then((res)=>{
+          let schoolsList:dataSource[] = res.data.map((schoolObj:any)=>{ return {id: schoolObj.id, label:schoolObj.name}});
+          setAppData((prevAppData) => ({
+            ...prevAppData,
+            schools: schoolsList,
+          }));
+      }).catch((error)=>{
+          SendError("Error fetching species from API");
+      }); 
+      
+    }
+
+    const GetClassNames = () =>{
+      // https://hellospring.script.lu/react/classlist?_format=json
+      const config = {
+          headers: {
+          },
+          params:{
+          }
+      };
+       axios.get(DRUPALURL+"react/classlist?_format=json" ,config).then((res)=>{
+          let classNamesList:dataSource[] = res.data.map((classNameObj:any)=>{ return {id: classNameObj.id, label:classNameObj.name}});
+          setAppData((prevAppData) => ({
+            ...prevAppData,
+            classNames: classNamesList,
+          }));
+      }).catch((error)=>{
+          SendError("Error fetching species from API");
+      }); 
+      
+    }
+
+    const GetImageFromApi = (paginate:number,append:boolean)=> {
+      setAppData((prevAppData) => ({
+        ...prevAppData,
+        page: paginate,
+        loading:true,
+      }));
+      const config = {
+          headers: {
+          },
+          params:{
+          }
+      };
+      
+      const page = searchParams.get('p');
+      let finalUrl = page ==="mod"? DRUPALURL+MODERATIONAPI : DRUPALURL+PHOTOAPI;
+      finalUrl += `&page=${paginate}`;
+      if(appData.filter.school !== null && appData.filter.school !== 0){
+          finalUrl += `&school_id=${appData.filter.school}`;
+      }
+      if(appData.filter.species !== null && appData.filter.species !== 0){
+        finalUrl += `&specie_id=${appData.filter.species}`;
+      }
+      if(appData.filter.className !== null && appData.filter.className !== 0){
+        finalUrl += `&class_id=${appData.filter.className}`;
+      }
+      axios.get(finalUrl ,config).then((photoRes)=>{
+          // declare array of photo
+          var photosToValidate:photo[] = [];
+          if(append){
+            photosToValidate = appData.photosToValidate;
+          }
+          var reactId = 1;
+          if(append){
+            photosToValidate = appData.photosToValidate;
+            reactId = appData.photosToValidate.length + 1;
+          }
+          photoRes.data.forEach((jObject:any)=>{
+              var _photo:photo = {
+                  react_id: reactId,
+                  id: jObject.nid_export,
+                  title: "",
+                  status: jObject.field_status,
+                  uid: jObject.field_author.id,
+                  studentIam: jObject.name_export,
+                  imageUrl: jObject.field_photo,
+                  specie: jObject.field_specie,
+                  message: jObject.field_message,
+                  className: jObject.field_class_id,
+                  school: jObject.school,
+                  error: null,
+                  selected: false,
+              }
+              reactId += 1;
+              photosToValidate.push(_photo);
+          });
+          
+          HandleLoadingPhotos(photosToValidate);
+          // Charge next page to see if more results to show
+          axios.get(finalUrl.replace(`page=${paginate}`,`page=${paginate+1}`) ,config)
+          .then((nextPageRes)=>{
+              if(nextPageRes.data.length===0){
+                  // NO MORE PHOTOS
+                  setAppData((prevAppData) => ({
+                    ...prevAppData,
+                    morePhotos: false,
+                    loading:false,
+                  }));
+              }else{
+                  // MORE PHOTOS AVAILABLE
+                  setAppData((prevAppData) => ({
+                    ...prevAppData,
+                    morePhotos: true,
+                    loading:false,
+                  }));
+              }
+          }
+          ).catch((error)=>{
+              setAppData((prevAppData) => ({
+                ...prevAppData,
+                morePhotos: false,
+                loading:false,
+              }));
+              SendError("Error fetching more photos from API : " + error);
+          });
+  
+      }).catch((error)=>{
+          setAppData((prevAppData) => ({
+            ...prevAppData,
+            loading:false,
+          }));
+          SendError("Error fetching photos from API : " + error);
+      });
+    
+    };
+
+    const GetNextPage = ()=>{
+      let nextPage = appData.page !== undefined ? appData.page + 1 : 1;
+      GetImageFromApi(nextPage,true);
+    }
+
+    const SendFilteredRequest = ()=>{
+      console.log("Send Filtered Request with filter:", appData.filter);
+    }
     
 
     const HandleLoadingPhotos = (photos: photo[]) => {
@@ -200,6 +425,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
           default:
             break;
         }
+        console.log("Toggle Filter:", type, newFilter);
         return {
           ...prevAppData,
           filter: newFilter,
@@ -207,6 +433,83 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
       });
 
     }
+
+    const ResetFilters = ()=>{
+      setAppData((prevAppData) => {
+        let newFilter = {
+          displayApproved: true,
+          displayRefused: true,
+          displayPending: true,
+          author:null,
+          className:null,
+          school:0,
+          species:0,
+        };
+        return {
+          ...prevAppData,
+          filter: newFilter,
+        };
+      });
+    }
+
+    const SelectFilterDataSource = (dsId:number,label:string)=>{
+      switch (label) {
+      
+        case "species":
+          setAppData((prevAppData) => {
+            let newFilter = {...prevAppData.filter};
+              newFilter.species = dsId;
+            return {
+              ...prevAppData,
+              filter: newFilter,
+            };
+          });
+          break;
+        
+        case "school":
+          setAppData((prevAppData) => {
+            let newFilter = {...prevAppData.filter};
+              newFilter.school = dsId;
+            return {
+              ...prevAppData,
+              filter: newFilter,
+            };
+          });
+          break;
+        case "className":
+          setAppData((prevAppData) => {
+            let newFilter = {...prevAppData.filter};
+              newFilter.className = dsId;
+            return {
+              ...prevAppData,
+              filter: newFilter,
+            };
+          });
+          break;
+        default:
+          break;
+      }
+    }
+
+    const UpdateFilter = (value:string, label:string)=>{
+      console.log("Update filter:", label, value);
+      setAppData((prevAppData) => {
+        let newFilter = {...prevAppData.filter};
+        switch (label) {
+          case "author":
+            newFilter.author = value.length>0?value:null;
+            break;
+          default:
+            break;
+        }
+        return {
+          ...prevAppData,
+          filter: newFilter,
+        };
+      });
+    }
+
+    
 
     const UpdatePhoto = (photo:photo, newStatus:string)=>{
     
@@ -224,7 +527,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
     });
     }
 
-    const TogglePhotoSelection = (photoId:string)=>{
+    const TogglePhotoSelection = (photoId:number)=>{
       setAppData((prevAppData) => {
         let updatedPhotos = prevAppData.photosToValidate.map((_photo) => {
             if (_photo.id === photoId) {
@@ -262,7 +565,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
 
 
     return (
-      <GlobalStateContext.Provider value={{ appData,GetFakeUser,GetFakeData,SendError,UpdatePhoto,ToggleFilter,TogglePhotoSelection, GetDrupalUser,HandleLoadingPhotos, HandleBatchAction}}>
+      <GlobalStateContext.Provider value={{ appData,GetFakeUser,GetFakeData,SendError,UpdatePhoto,ToggleFilter,TogglePhotoSelection, GetDrupalUser, GetSpecies, GetSchools,HandleLoadingPhotos, HandleBatchAction, UpdateFilter,SelectFilterDataSource,ResetFilters,SendFilteredRequest,GetImageFromApi, GetNextPage}}>
         {children}
       </GlobalStateContext.Provider>
     );

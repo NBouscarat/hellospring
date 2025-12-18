@@ -12,7 +12,17 @@ export interface AppData {
         displayRefused: boolean;
         displayApproved: boolean;
         displayPending: boolean;
+        species:number | null;
+        author:string | null;
+        className:number | null;
+        school:number | null;
     };
+    species: dataSource[];
+    schools: dataSource[];
+    classNames: dataSource[];
+    morePhotos: boolean;
+    page:number;
+    loading:boolean;
     
     
 };
@@ -55,20 +65,24 @@ export type appUser = {
     rights:string[],
 }
 export type photo = {
-    id: string,
+    react_id: number,
+    id: number,
     title: string,
     status: photoStatus,
     uid: string,
     studentIam: string,
     imageUrl: string,
-    specie: string,
+    specie: number,
     message: string,
-    className:string,
+    className:number,
     error: string | null,
     selected: boolean,
-    school:string,
+    school:number,
 }
-
+export type dataSource = {
+    id: number,
+    label: string
+}
 
 export type studentUser = {
     id: string,
