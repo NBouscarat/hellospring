@@ -74,7 +74,7 @@ const initialAppData: AppData = {
     classNames:[],
     error:null,
     morePhotos:false,
-    page:0,
+    page:1,
     loading:true,
   };
 
@@ -311,7 +311,8 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
       const page = searchParams.get('p');
       let finalUrl = page ==="mod"? DRUPALURL+MODERATIONAPI : DRUPALURL+PHOTOAPI;
       finalUrl += `&page=${paginate}`;
-      if(appData.filter.school !== null && appData.filter.school !== 0){
+     /*  
+     if(appData.filter.school !== null && appData.filter.school !== 0){
           finalUrl += `&school_id=${appData.filter.school}`;
       }
       if(appData.filter.species !== null && appData.filter.species !== 0){
@@ -319,10 +320,11 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
       }
       if(appData.filter.className !== null && appData.filter.className !== 0){
         finalUrl += `&class_id=${appData.filter.className}`;
-      }
+      } 
+        */
+      var photosToValidate:photo[] = [];
       axios.get(finalUrl ,config).then((photoRes)=>{
-          // declare array of photo
-          var photosToValidate:photo[] = [];
+          
           if(append){
             photosToValidate = appData.photosToValidate;
           }
@@ -351,7 +353,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
               photosToValidate.push(_photo);
           });
           
-          HandleLoadingPhotos(photosToValidate);
+          HandleLoadingPhotos(photosToValidate.sort((a,b)=>b.id - a.id));
           // Charge next page to see if more results to show
           axios.get(finalUrl.replace(`page=${paginate}`,`page=${paginate+1}`) ,config)
           .then((nextPageRes)=>{
@@ -364,11 +366,8 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
                   }));
               }else{
                   // MORE PHOTOS AVAILABLE
-                  setAppData((prevAppData) => ({
-                    ...prevAppData,
-                    morePhotos: true,
-                    loading:false,
-                  }));
+                  GetImageFromApi(paginate+1,true);
+                  
               }
           }
           ).catch((error)=>{
@@ -391,7 +390,7 @@ export const GlobalStateProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const GetNextPage = ()=>{
-      let nextPage = appData.page !== undefined ? appData.page + 1 : 1;
+      const nextPage = appData.page + 1;
       GetImageFromApi(nextPage,true);
     }
 

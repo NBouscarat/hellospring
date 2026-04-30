@@ -42,7 +42,7 @@ export default function Filter({  route}: { route?: string;}) {
   return (
     <div>
         {
-            _rights.includes(REVERT_RIGHT as right)?
+           // _rights.includes(REVERT_RIGHT as right)?
             <div className={styles.filtersWrapper}>
                 
                 {appData.filter.displayPending?
@@ -85,7 +85,7 @@ export default function Filter({  route}: { route?: string;}) {
                     : styles.filterButtonInactive
                     } onClick={()=>ResetFilters()}><FontAwesomeIcon icon={faEraser}/></button>
             </div>
-            :null
+          //  :null
         }
     </div>
   );

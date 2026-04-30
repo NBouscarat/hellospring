@@ -4,7 +4,7 @@
   --foreground-hover: #fefefe;
   --borderLightGrey:1px solid #ccc;
   --darkGrey:#666;
-  --lightGrey:#aaa;
+  --lightGrey:#888;
 }
 
 @media (prefers-color-scheme: dark) {

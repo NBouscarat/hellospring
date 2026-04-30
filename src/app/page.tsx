@@ -12,9 +12,10 @@ import { faBan, faCheck } from "@fortawesome/free-solid-svg-icons";
 import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
-  const { appData,GetFakeUser,GetFakeData,SendError,GetDrupalUser,GetSpecies, GetImageFromApi, HandleLoadingPhotos,HandleBatchAction, GetNextPage} = useGlobalState();
+  const { appData,GetFakeUser,GetFakeData,SendError,GetDrupalUser,GetSpecies, GetImageFromApi, HandleLoadingPhotos,HandleBatchAction} = useGlobalState();
   const [batchSelection, setBatchSelection] = useState(true);
   const searchParams = useSearchParams();
+  const [photosNumber, setPhotosNumber] = useState(100);
   const displayPhotos = appData.photosToValidate.filter(
     (photo)=>{
       if(!appData.filter.displayRefused && photo.status===STATUS_REFUSED){
@@ -55,6 +56,20 @@ export default function Home() {
   const NextPage = ()=>{
 
   }
+  const HandleScroll = ()=>{
+    
+    const scrollPosition = window.innerHeight + window.scrollY;
+    const threshold = document.body.offsetHeight - 300; // Trigger when 500px from the bottom
+    if (scrollPosition >= threshold) {
+      // increase photosNumber and append next photos from displayPhotos to the end of the list
+      //setPhotosNumber((prev)=>prev+100);
+      console.log("near bottom of page, load more photos");
+
+    }else{
+      console.log("scroll position:",scrollPosition,"threshold:",threshold);
+    }
+
+  }
 
 
 
@@ -62,11 +77,7 @@ export default function Home() {
   useEffect(()=>{
     const abortController = new AbortController();
     GetDrupalUser();
-    GetImageFromApi(0,false);
-    
-
-    //GetFakeUser();
-    //GetFakeData();
+    GetImageFromApi(0,true);
     
     return () => {
         abortController.abort();
@@ -76,7 +87,7 @@ export default function Home() {
 
   return (
     <div className={styles.page}>
-      <main className={styles.main}>
+      <main className={styles.main} >
         <div className={styles.filters}>
           {batchSelection?
           <div className={styles.batchActions}>
@@ -87,17 +98,19 @@ export default function Home() {
           <div>
             <Filter></Filter><span className={styles.info}>{displayPhotos.length}/{appData.photosToValidate.length} photos</span></div>
         </div>
-        <div className={styles.cardsWrapper}>
-          {/* DISPLAY ONLY PHOTOS MATCHING FILTER */
-          displayPhotos.map((photo)=>
+        <div className={styles.cardsWrapper} onScroll={()=>HandleScroll()}>
+          {/* DISPLAY ONLY PHOTOS MATCHING FILTER 
+            Display only X photos at a time, then load more if user scrolls near the end of the page or click on a button
+          */
           
+          displayPhotos.slice(0,photosNumber).map((photo)=>
             <Card key={photo.react_id} photo={photo}/>
           )}
           
         </div>
-        {appData.morePhotos?
-          <div className={styles.morePhotos} onClick={()=>GetNextPage()}>
-            <p>More data are available... Click here to load more</p>
+        {photosNumber < displayPhotos.length?
+          <div className={styles.morePhotos} onClick={()=>setPhotosNumber(photosNumber+50)}>
+            <p>More photos are available try narrow the filter or click here to see more</p>
           </div>:null
           }
         {appData.loading?

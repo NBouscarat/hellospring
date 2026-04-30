@@ -75,9 +75,7 @@
   }
 }
 
-@media (max-width: 600px) {
-  
-}
+
 
 @media (prefers-color-scheme: dark) {
   .logo {
@@ -108,10 +106,7 @@
   transition: transform 0.2s, box-shadow 1s;
 }
 
-.card.maximize{
-  grid-column: span 3;
-  background:var(--foreground-hover);
-}
+
 .cardReduced{
   background: var(--foreground);
   border: 1px solid #dedede;
@@ -120,6 +115,10 @@
   padding: 20px;
   transition: transform 0.2s, box-shadow 1s;
   opacity:0.8;
+}
+.card.maximize, .cardReduced.maximize{
+  grid-column: span 3;
+  background:var(--foreground-hover);
 }
 .card:hover{
   background: var(--foreground-hover);
@@ -500,3 +499,41 @@
     opacity: 1;
   }
 }
+
+
+/***********************  MEDIA QUERIES   ***********************
+Mobile: 1200px -> filter adaptation
+*/
+
+@media (max-width: 1200px) {
+
+  .filtersWrapper{
+    flex-wrap: wrap;
+  }
+  .cardsWrapper {
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  }
+  .cardAuthor{
+    flex-wrap: wrap;
+  }
+}
+
+@media (max-width: 1024px) {
+
+  /* Under this size the action should be always available to prevent touch selection */
+  .cardActions{
+    opacity: 1;
+    height: auto;
+    padding: 10px;
+    border-bottom: var(--borderLightGrey);
+  }
+  .cardActions div{
+    border-right: var(--borderLightGrey);
+  }
+  .cardActions div:last-child{
+    border-right: none;
+  }
+}
+
+
+

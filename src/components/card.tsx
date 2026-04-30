@@ -45,7 +45,6 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
     
     if (photo) {
       let photoReturn = PatchPhoto(photo,STATUS_APPROVED,"");
-      console.log("Photo Return error:",(await photoReturn).error);
       if((await photoReturn).error === null){
         UpdatePhoto(photo,STATUS_APPROVED);
       }else{
@@ -86,16 +85,15 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
 
   const GetClass=()=>{
     let className = "";
-    console.log("Status:",photo?.status);
     switch (photo?.status) {
       case "pending_review":
         className = `switch_pending ${styles.card} ${expand?styles.maximize : null} `
         break;
       case "refused":
-        className = `switch_refused ${styles.cardReduced} ${styles.rejected} `
+        className = `switch_refused ${styles.cardReduced} ${expand?styles.maximize : null} ${styles.rejected} `
         break;
       case "approved":
-        className = `switch_approved ${styles.cardReduced} ${styles.accepted} `
+        className = `switch_approved ${styles.cardReduced} ${expand?styles.maximize : null} ${styles.accepted} `
         break;
       default:
          className = `switch_other ${styles.card} ${expand?styles.maximize : null} `
@@ -141,6 +139,12 @@ export default function Card({ route,photo}: { route?: string;  photo:photo }) {
                     <span className={styles.cardButton}>
                       <FontAwesomeIcon icon={faClockRotateLeft} />
                     </span>
+                  </div>
+                  <div onClick={HandleExpandCard}>
+                    <span className={styles.cardButton}>
+                      <FontAwesomeIcon icon={!expand ?faMagnifyingGlass : faCompress} />
+                    </span>
+                    
                   </div>
                 </div> : 
                 <div className={styles.cardActions}>
